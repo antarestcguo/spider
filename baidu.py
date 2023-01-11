@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--save_root", type=str,
                     default="./data_baidu")
 parser.add_argument("--query_file", type=str, default='query.txt')
-parser.add_argument("--search_count", type=int, default=500)  # find 500 images and stop
+parser.add_argument("--search_count", type=int, default=100)  # find 500 images and stop
 parser.add_argument('--saved_url_path', type=str, default='./')
 args = parser.parse_args()
 
@@ -18,7 +18,7 @@ header = {
 }
 url = 'https://image.baidu.com/search/acjson?'
 
-error_bound = 100
+error_bound = 200
 
 # read query
 query_list = []
@@ -45,7 +45,7 @@ for q in query_list:
         command = 'mkdir -p ' + save_path
         os.system(command)
 
-    while count < args.search_count or err_cnt < error_bound:
+    while count < args.search_count and err_cnt < error_bound:
         param = {
             'tn': 'resultjson_com',
             'logid': '8846269338939606587',
@@ -83,20 +83,27 @@ for q in query_list:
             'rn': '30',
             'gsm': '1e',
         }
-        page_text = requests.get(url=url, headers=header, params=param)
-        page_text.encoding = 'utf-8'
-        page_text = page_text.json()
-        info_list = page_text['data']
-        del info_list[-1]
-        img_path_list = []
-        for i in info_list:
-            if i not in saved_url_list:
-                img_path_list.append(i['thumbURL'])
+        try:
+            page_text = requests.get(url=url, headers=header, params=param)
+            page_text.encoding = 'utf-8'
+            page_text = page_text.json()
+            info_list = page_text['data']
+            del info_list[-1]
+            img_path_list = []
+            for i in info_list:
+                if i not in saved_url_list:
+                    img_path_list.append(i['thumbURL'])
+        except Exception:
+            err_cnt += 1
+            continue
 
         for img_url in img_path_list:
             try:
                 img_data = requests.get(url=img_url, headers=header).content
-                save_name = os.path.join(save_path, "%0.5d.jpg" % (count))
+                t = time.localtime()
+                save_name = os.path.join(save_path, "%d_%d_%d_%d_%d_%d_%0.5d.jpg" %
+                                         (t.tm_year, t.tm_mon, t.tm_mday,
+                                          t.tm_hour, t.tm_min, t.tm_sec, count))
                 with open(save_name, 'wb') as fp:
                     fp.write(img_data)
             except Exception:

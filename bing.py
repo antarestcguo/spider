@@ -7,6 +7,7 @@ import time
 from urllib.parse import quote
 import string
 import argparse
+import requests
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--save_root", type=str,
@@ -18,9 +19,12 @@ args = parser.parse_args()
 
 
 def getStartHtml(url):
-    url = quote(url, safe=string.printable)
-    page = urllib.request.Request(url, headers=header)
-    html = urllib.request.urlopen(page)
+    try:
+        url = quote(url, safe=string.printable)
+        page = urllib.request.Request(url, headers=header)
+        html = urllib.request.urlopen(page)
+    except Exception:
+        html = None
     return html
 
 
@@ -36,8 +40,14 @@ def findImgUrlFromHtml(html, rule, count, err_cnt, save_path, saved_url_list):
             if url in saved_url_list:
                 continue
 
-            save_name = os.path.join(save_path, "%0.5d.jpg" % (count))
+            t = time.localtime()
+            save_name = os.path.join(save_path, "%d_%d_%d_%d_%d_%d_%0.5d.jpg" %
+                                     (t.tm_year, t.tm_mon, t.tm_mday,
+                                      t.tm_hour, t.tm_min, t.tm_sec, count))
             try:
+                # img_data = requests.get(url=url, headers=header).content
+                # with open(save_name, 'wb') as fp:
+                #     fp.write(img_data)
                 urllib.request.urlretrieve(url, save_name)
             except Exception:
                 time.sleep(1)
@@ -56,7 +66,7 @@ header = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:64.0) "
                    "Gecko/20100101 Firefox/64.0")
 }
-error_bound = 100
+error_bound = 200
 rule = re.compile(r"\"murl\"\:\"http\S[^\"]+")
 
 # read query
@@ -79,19 +89,21 @@ for q in query_list:
         command = 'mkdir -p ' + save_path
         os.system(command)
 
-    saved_url_file = os.path.join(args.saved_url_path, q + '.txt')
+    saved_url_file = os.path.join(args.saved_url_path, q + '_bing.txt')
     saved_url_list = []
     if os.path.exists(saved_url_file):
         with open(saved_url_file, 'r') as f:
             for line in f.readlines():
                 saved_url_list.append(line.strip())
 
-    while count < args.search_count or err_cnt < error_bound:
+    while count < args.search_count and err_cnt < error_bound:
         url = "http://cn.bing.com/images/async?first=%s&count=35&q=%s" % (first, q)
         html = getStartHtml(url)
-        count, err_cnt, download_list = findImgUrlFromHtml(html, rule, count, err_cnt, save_path, saved_url_list)
-
-        saved_url_list.extend(download_list)
+        if html is not None:
+            count, err_cnt, download_list = findImgUrlFromHtml(html, rule, count, err_cnt, save_path, saved_url_list)
+            saved_url_list.extend(download_list)
+        else:
+            err_cnt += 1
         first += 1
 
     # saved url to file
