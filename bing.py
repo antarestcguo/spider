@@ -31,6 +31,8 @@ def getStartHtml(url):
 def findImgUrlFromHtml(html, rule, count, err_cnt, save_path, saved_url_list):
     soup = BeautifulSoup(html, 'lxml')
     link_list = soup.find_all("a", class_="iusc")
+    if len(link_list) == 0:
+        err_cnt += 1
     download_list = []
     for link in link_list:
         result = re.search(rule, str(link))
@@ -66,7 +68,7 @@ header = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:64.0) "
                    "Gecko/20100101 Firefox/64.0")
 }
-error_bound = 200
+error_bound = 1000
 rule = re.compile(r"\"murl\"\:\"http\S[^\"]+")
 
 # read query

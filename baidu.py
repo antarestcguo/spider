@@ -18,7 +18,7 @@ header = {
 }
 url = 'https://image.baidu.com/search/acjson?'
 
-error_bound = 200
+error_bound = 1000
 
 # read query
 query_list = []
@@ -97,6 +97,8 @@ for q in query_list:
             err_cnt += 1
             continue
 
+        if len(img_path_list) == 0:
+            err_cnt += 1
         for img_url in img_path_list:
             try:
                 img_data = requests.get(url=img_url, headers=header).content
