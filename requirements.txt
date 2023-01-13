@@ -1,0 +1,8 @@
+urllib
+bs4
+re
+requests
+lxml
+selenium==4.1.0
+icrawler
+webdriver_manager
